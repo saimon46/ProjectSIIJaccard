@@ -10,9 +10,9 @@ public class Jaccard {
 		EntityManager em = emf.createEntityManager();
 		JaccardSimilarity jaccard = new JaccardSimilarity();
 		
-		String idUser = "8029";
+		String idUser = "13229";
 		
-		jaccard.runOneUser(em, idUser);
+		jaccard.runOneUser60percent(em, idUser);
 	}
 }
 

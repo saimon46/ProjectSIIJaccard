@@ -47,9 +47,26 @@ public class User {
 	
 	public List<Track> getTracks(){
 		List<Track> tracks = new ArrayList<Track>();
+		Track track = null;
 		
-		for(Tweet tweet:this.tweets)
-			tracks.add(tweet.getTrack());
+		for(Tweet tweet:this.tweets){
+			track = tweet.getTrack();
+			if(!tracks.contains(track))
+				tracks.add(track);
+		}
+		
+		return tracks;
+	}
+	
+	public List<Track> getTracksInTweets(List<Tweet> tweets){
+		List<Track> tracks = new ArrayList<Track>();
+		Track track = null;
+		
+		for(Tweet tweet:tweets){
+			track = tweet.getTrack();
+			if(!tracks.contains(track))
+				tracks.add(track);
+		}
 		
 		return tracks;
 	}
