@@ -1,3 +1,4 @@
+package pjsii.model;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -64,7 +65,7 @@ public class User {
 		
 		for(Tweet tweet:tweets){
 			track = tweet.getTrack();
-			if(!tracks.contains(track))
+			if(!tracks.contains(track) && this.tweets.contains(tweet))
 				tracks.add(track);
 		}
 		

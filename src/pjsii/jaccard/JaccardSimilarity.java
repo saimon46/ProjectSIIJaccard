@@ -1,18 +1,23 @@
+package pjsii.jaccard;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import javax.persistence.EntityManager;
 
+import pjsii.model.*;
+
 public class JaccardSimilarity {
 	final static double cAuthor = 0.5;
 	final static double cTrack = 0.5;
 	
-    void runAllForSize(EntityManager em, int size) throws IOException {
+    public void runAllForSize(EntityManager em, int size) throws IOException {
     	javax.persistence.Query qUsers = em.createQuery("SELECT tw.user AS uid FROM Tweet tw GROUP BY tw.user ORDER BY COUNT(tw.id) DESC");
 		List<User> users = new ArrayList<User>(qUsers.getResultList());
 		
@@ -81,7 +86,7 @@ public class JaccardSimilarity {
 
     }
     
-    void runOneUser(EntityManager em, String userId) throws IOException {
+    public void runOneUser(EntityManager em, String userId) throws IOException {
     	javax.persistence.Query qUser = em.createQuery("SELECT u FROM User u WHERE u.id = :id");
     	qUser.setParameter("id", userId);
 		List<User> listUser = new ArrayList<User>(qUser.getResultList());
@@ -94,15 +99,6 @@ public class JaccardSimilarity {
 		
 		FileWriter fOutstream1 = new FileWriter("Log.txt");
         BufferedWriter out1 = new BufferedWriter(fOutstream1);
-        
-        /*
-        String s1 = "Similarità con altri utenti: ";
-        
-		for(int i = 0; i<users.size(); i++)
-			s1+=similarity.get(i)+" - ";
-			
-		System.out.println(s1);
-		*/
 		
 		System.out.println("-----------Analisi similarità completata-----------\n");
 		out1.write("-----------Analisi similarità completata-----------\n");
@@ -172,7 +168,7 @@ public class JaccardSimilarity {
 		out2.close();
     }
     
-    void runOneUser60percent(EntityManager em, String userId) throws IOException {
+    public void runOneUser70percent(EntityManager em, String userId) throws IOException {
     	javax.persistence.Query qUser = em.createQuery("SELECT u FROM User u WHERE u.id = :id");
     	qUser.setParameter("id", userId);
 		List<User> listUser = new ArrayList<User>(qUser.getResultList());
@@ -188,38 +184,28 @@ public class JaccardSimilarity {
 			tweets.addAll(current.getTweets());
 		}
 		
+		Collections.shuffle(tweets);
+		
 		//System.out.println("Dimensione tweet "+tweets.size());
 		
-		List<Tweet>	tweets60Training = new ArrayList<Tweet>();
-		List<Tweet>	tweets40Test = new ArrayList<Tweet>();
+		List<Tweet>	tweets70Training = new ArrayList<Tweet>();
+		List<Tweet>	tweets30Test = new ArrayList<Tweet>();
 		
-		int size60 = tweets.size()/100*60;
+		int size70 = tweets.size()/100*70;
 		int cont = 0;
 		
 		for(Tweet tweet:tweets){
-			if(cont < size60)
-				tweets60Training.add(tweet);
+			if(cont < size70)
+				tweets70Training.add(tweet);
 			else
-				tweets40Test.add(tweet);
+				tweets30Test.add(tweet);
 			cont++;
 		}
 		
-		//System.out.println("Dimensione tweet60 "+tweets60Training.size());
-		//System.out.println("Dimensione tweet40 "+tweets40Test.size());
-		
-		ArrayList<Double> similarity = getSimilarityVectorFromTweets(em, user, users, tweets60Training, cAuthor, cTrack);
+		ArrayList<Double> similarity = getSimilarityVectorFromTweets(em, user, users, tweets70Training, cAuthor, cTrack);
 		
 		FileWriter fOutstream1 = new FileWriter("Log.txt");
         BufferedWriter out1 = new BufferedWriter(fOutstream1);
-        
-        /*
-        String s1 = "Similarità con altri utenti: ";
-        
-		for(int i = 0; i<users.size(); i++)
-			s1+=similarity.get(i)+" - ";
-			
-		System.out.println(s1);
-		*/
 		
 		System.out.println("-----------Analisi similarità completata-----------\n");
 		out1.write("-----------Analisi similarità completata-----------\n");
@@ -254,30 +240,37 @@ public class JaccardSimilarity {
 			System.out.println(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
 			out2.write(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
 			
-			List<Track> suggestedTracks = getListSuggestedTracks(user, similarUserFirst, similarUserSecond);
+			List<Track> suggestedTracks = getListSuggestedTracksFromTweets(user, similarUserFirst, similarUserSecond, tweets70Training);
+			List<Track> tracks20Test = user.getTracksInTweets(tweets30Test);
 			
-			String s2 = "\nTracce utente preso in considerazione: \n";
-			List<Track> tracksUser = user.getTracks();
+			String s2 = "\nTracce utente nel solo 80% del database: \n";
+			List<Track> tracksUser = user.getTracksInTweets(tweets70Training);
 			for(Track track:tracksUser){
 				s2 += track.getAuthor() + " - " + track.getName() + "\n";
 			}
 			
 			s2 += "\nTracce primo utente simile: \n";
-			List<Track> tracksFirst = similarUserFirst.getTracks();
+			List<Track> tracksFirst = similarUserFirst.getTracksInTweets(tweets70Training);
 			for(Track track:tracksFirst){
 				s2 += track.getAuthor() + " - " + track.getName() + "\n";
 			}
 			
 			s2 += "\nTracce secondo utente simile: \n";
-			List<Track> tracksSecond = similarUserSecond.getTracks();
+			List<Track> tracksSecond = similarUserSecond.getTracksInTweets(tweets70Training);
 			for(Track track:tracksSecond){
 				s2 += track.getAuthor() + " - " + track.getName() + "\n";
 			}
 			
-			s2 += "\nTracce suggerite: \n";
+			s2 += "\nTracce suggerite utilizzando l'80% del database: \n";
 			for(Track track:suggestedTracks){
 				s2 += track.getAuthor() + " - " + track.getName() + "\n";
 			}
+			
+			s2 += "\nTracce che ha sentito l'utente nel rimanente 20% del database: \n";
+			for(Track track:tracks20Test){
+				s2 += track.getAuthor() + " - " + track.getName() + "\n";
+			}
+			
 			System.out.println(s2);
 			out2.write(s2);
 		}else{
@@ -405,7 +398,7 @@ public class JaccardSimilarity {
 		List<String> trackUser1Track = getNameFromTracks(tracksUser1);
 			
 		for(int i = 0; i<users.size(); i++){
-			List<Track> tracksUser2 = user.getTracksInTweets(tweets);
+			List<Track> tracksUser2 = users.get(i).getTracksInTweets(tweets);
 
 			List<String> trackUser2Author = getAuthorFromTracks(tracksUser2);
 			List<String> trackUser2Track = getNameFromTracks(tracksUser2);
@@ -431,6 +424,24 @@ public class JaccardSimilarity {
     	return similarity;
     }
    
+    private List<Track> getListSuggestedTracksFromTweets(User user, User similarUser1, User similarUser2,List<Tweet> tweets) {
+    	List<Track> tracksSimilarUser1 = similarUser1.getTracksInTweets(tweets);
+    	List<Track> tracksSimilarUser2 = similarUser2.getTracksInTweets(tweets);
+    	List<Track> tracksUser = user.getTracksInTweets(tweets);
+    	
+    	for(Track track: tracksUser){
+    		tracksSimilarUser1.remove(track);
+    		tracksSimilarUser2.remove(track);
+    	}
+    	
+    	for(Track track: tracksSimilarUser1){
+    		tracksSimilarUser2.remove(track);
+    	}
+    	
+    	tracksSimilarUser1.addAll(tracksSimilarUser2);
+    	return tracksSimilarUser1;
+    }
+    
     private List<Track> getListSuggestedTracks(User user, User similarUser1, User similarUser2) {
     	List<Track> tracksSimilarUser1 = similarUser1.getTracks();
     	List<Track> tracksSimilarUser2 = similarUser2.getTracks();
@@ -453,19 +464,21 @@ public class JaccardSimilarity {
     	List<String> trackUserAuthor = new ArrayList<String>();
     	
     	for(Track track:tracks){
-    		trackUserAuthor.add(track.getAuthor());
+    		if(!trackUserAuthor.contains(track.getAuthor()))
+    			trackUserAuthor.add(track.getAuthor());
     	}
     	
     	return trackUserAuthor;
     }
     
     private List<String> getNameFromTracks(List<Track> tracks){
-    	List<String> trackUserAuthor = new ArrayList<String>();
+    	List<String> trackUserName = new ArrayList<String>();
     	
     	for(Track track:tracks){
-    		trackUserAuthor.add(track.getAuthor());
+    		if(!trackUserName.contains(track.getName()))
+    			trackUserName.add(track.getName());
     	}
     	
-    	return trackUserAuthor;
+    	return trackUserName;
     }
 }
