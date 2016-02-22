@@ -1,27 +1,23 @@
-vitao_nick - JewelledShaz - 0.125vitao_nick - tolitslaparan - 0.1
-Tracce utente nel solo 80% del database: 
-Arnaldo Baptista - Será Que Eu Vou Virar Bolor?
-Luiza Possi - Tudo Certo
-Luiza Possi - Escuta
-Luiza Possi - Dois Perdidos
-Luiza Possi - Tão da Lua
-Counting Crows - Round Here
+RLV__ - fermn_r - 0.75RLV__ - soy_Javier_ - 0.7
+Tracce utente preso in considerazione 'RLV__': 
+The Beatles - Hold Me Tight - Remastered
+The Beatles - Oh! Darling - Remastered
 
-Tracce primo utente simile: 
-Ryan Adams - Clean
-Counting Crows - Possibility Days
+Tracce primo utente simile 'fermn_r' - similarità: 0.75 :
+The Beatles - If I Needed Someone - Remastered
+The Beatles - Oh! Darling - Remastered
+The Beatles - Happiness Is A Warm Gun - Remastered
+The Beatles - Blackbird - Remastered
+The Beatles - Martha My Dear - Remastered
 
-Tracce secondo utente simile: 
-Counting Crows - Mr. Jones
-Nat King Cole - Smile
-Marc Shaiman - An Affair To Remember
+Tracce secondo utente simile 'soy_Javier_' - similarità: 0.7 :
+The Beatles - Get Back - Remastered
+The Beatles - Love Me Do - Mono / Remastered
 
-Tracce suggerite utilizzando l'80% del database: 
-Ryan Adams - Clean
-Counting Crows - Possibility Days
-Counting Crows - Mr. Jones
-Nat King Cole - Smile
-Marc Shaiman - An Affair To Remember
-
-Tracce che ha sentito l'utente nel rimanente 20% del database: 
-Arnaldo Baptista - Cê Tá Pensando Que Eu Sou Loki?
+Tracce suggerite: 
+The Beatles - If I Needed Someone - Remastered
+The Beatles - Happiness Is A Warm Gun - Remastered
+The Beatles - Blackbird - Remastered
+The Beatles - Martha My Dear - Remastered
+The Beatles - Get Back - Remastered
+The Beatles - Love Me Do - Mono / Remastered

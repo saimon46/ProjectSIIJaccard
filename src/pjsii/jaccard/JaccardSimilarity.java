@@ -3,7 +3,6 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -12,10 +11,20 @@ import java.util.Set;
 import javax.persistence.EntityManager;
 
 import pjsii.model.*;
+import pjsii.swing.SwingIndex;
 
 public class JaccardSimilarity {
-	final static double cAuthor = 0.5;
-	final static double cTrack = 0.5;
+	final static double cAuthor = 0.7;
+	final static double cTrack = 0.3;
+	
+	private SwingIndex swing;
+	
+	public JaccardSimilarity(){
+	}
+	
+	public JaccardSimilarity(SwingIndex swing){
+		this.swing = swing;
+	}
 	
     public void runAllForSize(EntityManager em, int size) throws IOException {
     	javax.persistence.Query qUsers = em.createQuery("SELECT tw.user AS uid FROM Tweet tw GROUP BY tw.user ORDER BY COUNT(tw.id) DESC");
@@ -39,6 +48,9 @@ public class JaccardSimilarity {
 			}
 			System.out.println(s);
 		}
+		
+		this.swing.printAddOnTextPane("-- Analizzati " + size + " utenti su " + size + " --");
+		this.swing.printAddOnTextPane("-- Analisi similarità completata --");
 		
 		System.out.println("-----------Analisi similarità completata-----------");
 		out1.write("-----------Analisi similarità completata-----------\n");
@@ -65,17 +77,23 @@ public class JaccardSimilarity {
 				similarUser.add(null);
 		}
 		
+		this.swing.printAddOnTextPane("-- Calcolo utenti simili completato --\n");
+		
 		System.out.println("-----------Calcolo utenti simili completato-----------");
 		out1.write("-----------Calcolo utenti simili completato-----------\n");
 		
 		FileWriter fOutstream2 = new FileWriter("Similarity.txt");
         BufferedWriter out2 = new BufferedWriter(fOutstream2);
 		
+        this.swing.printAddOnTextPane("Risultati: ");
+        
 		for(int i = 0; i<size; i++){
 			if(similarUser.get(i) != null){
+				this.swing.printAddOnTextPane("Utente '" + users.get(i).getName() + "' e '" + similarUser.get(i).getName() + "' con coefficiente di similarità: " + max.get(i));
 				System.out.println(users.get(i).getName() + " - " + similarUser.get(i).getName() + " - " + max.get(i));
 				out2.write(users.get(i).getName() + " - " + similarUser.get(i).getName() + " - " + max.get(i));
 			}else{
+				this.swing.printAddOnTextPane("Utente '" + users.get(i).getName() + "' NON SIMILE A NESSUN ALTRO UTENTE!");
 				System.out.println(users.get(i).getName() + " - NON SIMILE A NESSUN ALTRO UTENTE");
 				out2.write(users.get(i).getName() + " - NON SIMILE A NESSUN ALTRO UTENTE");
 			}
@@ -86,9 +104,9 @@ public class JaccardSimilarity {
 
     }
     
-    public void runOneUser(EntityManager em, String userId) throws IOException {
-    	javax.persistence.Query qUser = em.createQuery("SELECT u FROM User u WHERE u.id = :id");
-    	qUser.setParameter("id", userId);
+    public void runOneUser(EntityManager em, String name) throws IOException {
+    	javax.persistence.Query qUser = em.createQuery("SELECT u FROM User u WHERE u.name = :name");
+    	qUser.setParameter("name", name);
 		List<User> listUser = new ArrayList<User>(qUser.getResultList());
 		User user = listUser.get(0);
 		
@@ -99,6 +117,8 @@ public class JaccardSimilarity {
 		
 		FileWriter fOutstream1 = new FileWriter("Log.txt");
         BufferedWriter out1 = new BufferedWriter(fOutstream1);
+        
+        this.swing.printAddOnTextPane("-- Analisi similarità completata --");
 		
 		System.out.println("-----------Analisi similarità completata-----------\n");
 		out1.write("-----------Analisi similarità completata-----------\n");
@@ -120,6 +140,8 @@ public class JaccardSimilarity {
 					similarUserSecond = users.get(i);
 			}
 		
+		this.swing.printAddOnTextPane("-- Calcolo utente simile completato --\n");
+		
 		System.out.println("-----------Calcolo utente simile completato-----------\n");
 		out1.write("-----------Calcolo utente simile completato-----------\n");
 		
@@ -127,39 +149,43 @@ public class JaccardSimilarity {
         BufferedWriter out2 = new BufferedWriter(fOutstream2);
 		
 		if(similarUserFirst!= null){
+			this.swing.printAddOnTextPane("Utente '" + user.getName() + "' e primo utente simile '" + similarUserFirst.getName() + "' con coefficiente di similarità: " + max1);
 			System.out.println(user.getName() + " - " + similarUserFirst.getName() + " - " + max1);
 			out2.write(user.getName() + " - " + similarUserFirst.getName() + " - " + max1);
 			
+			this.swing.printAddOnTextPane("Utente '" + user.getName() + "' e secondo utente simile '" + similarUserSecond.getName() + "' con coefficiente di similarità: " + max2);
 			System.out.println(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
 			out2.write(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
 			
 			List<Track> suggestedTracks = getListSuggestedTracks(user, similarUserFirst, similarUserSecond);
 			
-			String s2 = "\nTracce utente preso in considerazione: \n";
+			String s = "\nTracce utente preso in considerazione '" + user.getName() + "': \n";
 			List<Track> tracksUser = user.getTracks();
 			for(Track track:tracksUser){
-				s2 += track.getAuthor() + " - " + track.getName() + "\n";
+				s += track.getAuthor() + " - " + track.getName() + "\n";
 			}
 			
-			s2 += "\nTracce primo utente simile: \n";
+			s += "\nTracce primo utente simile '" + similarUserFirst.getName() + "' - similarità: " + max1 + " :\n";
 			List<Track> tracksFirst = similarUserFirst.getTracks();
 			for(Track track:tracksFirst){
-				s2 += track.getAuthor() + " - " + track.getName() + "\n";
+				s += track.getAuthor() + " - " + track.getName() + "\n";
 			}
 			
-			s2 += "\nTracce secondo utente simile: \n";
+			s += "\nTracce secondo utente simile '" + similarUserSecond.getName() + "' - similarità: " + max2 + " :\n";
 			List<Track> tracksSecond = similarUserSecond.getTracks();
 			for(Track track:tracksSecond){
-				s2 += track.getAuthor() + " - " + track.getName() + "\n";
+				s += track.getAuthor() + " - " + track.getName() + "\n";
 			}
 			
-			s2 += "\nTracce suggerite: \n";
+			s += "\nTracce suggerite: \n";
 			for(Track track:suggestedTracks){
-				s2 += track.getAuthor() + " - " + track.getName() + "\n";
+				s += track.getAuthor() + " - " + track.getName() + "\n";
 			}
-			System.out.println(s2);
-			out2.write(s2);
+			this.swing.printAddOnTextPane(s);
+			System.out.println(s);
+			out2.write(s);
 		}else{
+			this.swing.printAddOnTextPane(user.getName() + " - NON SIMILE A NESSUN ALTRO UTENTE");
 			System.out.println(user.getName() + " - NON SIMILE A NESSUN ALTRO UTENTE");
 			out2.write(user.getName() + " - NON SIMILE A NESSUN ALTRO UTENTE");
 		}
@@ -168,9 +194,9 @@ public class JaccardSimilarity {
 		out2.close();
     }
     
-    public void runOneUser70percent(EntityManager em, String userId) throws IOException {
-    	javax.persistence.Query qUser = em.createQuery("SELECT u FROM User u WHERE u.id = :id");
-    	qUser.setParameter("id", userId);
+    public void runOneUserPercent(EntityManager em, String name, int percent) throws IOException {
+    	javax.persistence.Query qUser = em.createQuery("SELECT u FROM User u WHERE u.name = :name");
+    	qUser.setParameter("name", name);
 		List<User> listUser = new ArrayList<User>(qUser.getResultList());
 		User user = listUser.get(0);
 		
@@ -188,25 +214,26 @@ public class JaccardSimilarity {
 		
 		//System.out.println("Dimensione tweet "+tweets.size());
 		
-		List<Tweet>	tweets70Training = new ArrayList<Tweet>();
-		List<Tweet>	tweets30Test = new ArrayList<Tweet>();
+		List<Tweet>	tweetsTraining = new ArrayList<Tweet>();
+		List<Tweet>	tweetsTest = new ArrayList<Tweet>();
 		
-		int size70 = tweets.size()/100*70;
+		int sizeTraining = tweets.size()/100*percent;
 		int cont = 0;
 		
 		for(Tweet tweet:tweets){
-			if(cont < size70)
-				tweets70Training.add(tweet);
+			if(cont < sizeTraining)
+				tweetsTraining.add(tweet);
 			else
-				tweets30Test.add(tweet);
+				tweetsTest.add(tweet);
 			cont++;
 		}
 		
-		ArrayList<Double> similarity = getSimilarityVectorFromTweets(em, user, users, tweets70Training, cAuthor, cTrack);
+		ArrayList<Double> similarity = getSimilarityVectorFromTweets(em, user, users, tweetsTraining, cAuthor, cTrack);
 		
 		FileWriter fOutstream1 = new FileWriter("Log.txt");
         BufferedWriter out1 = new BufferedWriter(fOutstream1);
-		
+        
+        this.swing.printAddOnTextPane("-- Analisi similarità completata --");
 		System.out.println("-----------Analisi similarità completata-----------\n");
 		out1.write("-----------Analisi similarità completata-----------\n");
 		
@@ -227,6 +254,7 @@ public class JaccardSimilarity {
 					similarUserSecond = users.get(i);
 			}
 		
+		this.swing.printAddOnTextPane("-- Calcolo utente simile completato --\n");		
 		System.out.println("-----------Calcolo utente simile completato-----------\n");
 		out1.write("-----------Calcolo utente simile completato-----------\n");
 		
@@ -234,46 +262,50 @@ public class JaccardSimilarity {
         BufferedWriter out2 = new BufferedWriter(fOutstream2);
 		
 		if(similarUserFirst!= null){
+			this.swing.printAddOnTextPane("Utente '" + user.getName() + "' e primo utente simile '" + similarUserFirst.getName() + "' con coefficiente di similarità: " + max1);
 			System.out.println(user.getName() + " - " + similarUserFirst.getName() + " - " + max1);
 			out2.write(user.getName() + " - " + similarUserFirst.getName() + " - " + max1);
 			
+			this.swing.printAddOnTextPane("Utente '" + user.getName() + "' e secondo utente simile '" + similarUserSecond.getName() + " con coefficiente di similarità: " + max2);
 			System.out.println(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
 			out2.write(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
 			
-			List<Track> suggestedTracks = getListSuggestedTracksFromTweets(user, similarUserFirst, similarUserSecond, tweets70Training);
-			List<Track> tracks20Test = user.getTracksInTweets(tweets30Test);
+			List<Track> suggestedTracks = getListSuggestedTracksFromTweets(user, similarUserFirst, similarUserSecond, tweetsTraining);
+			List<Track> tracksTest = user.getTracksInTweets(tweetsTest);
 			
-			String s2 = "\nTracce utente nel solo 80% del database: \n";
-			List<Track> tracksUser = user.getTracksInTweets(tweets70Training);
+			String s = "\nTracce utente '" + user.getName() + "' nel solo " + percent + "% del database:\n";
+			List<Track> tracksUser = user.getTracksInTweets(tweetsTraining);
 			for(Track track:tracksUser){
-				s2 += track.getAuthor() + " - " + track.getName() + "\n";
+				s += track.getAuthor() + " - " + track.getName() + "\n";
 			}
 			
-			s2 += "\nTracce primo utente simile: \n";
-			List<Track> tracksFirst = similarUserFirst.getTracksInTweets(tweets70Training);
+			s += "\nTracce primo utente simile '" + similarUserFirst.getName() + "' - similarità: " + max1 + " :\n";
+			List<Track> tracksFirst = similarUserFirst.getTracksInTweets(tweetsTraining);
 			for(Track track:tracksFirst){
-				s2 += track.getAuthor() + " - " + track.getName() + "\n";
+				s += track.getAuthor() + " - " + track.getName() + "\n";
 			}
 			
-			s2 += "\nTracce secondo utente simile: \n";
-			List<Track> tracksSecond = similarUserSecond.getTracksInTweets(tweets70Training);
+			s += "\nTracce secondo utente simile '" + similarUserSecond.getName() + "' - similarità: " + max2 + " :\n";
+			List<Track> tracksSecond = similarUserSecond.getTracksInTweets(tweetsTraining);
 			for(Track track:tracksSecond){
-				s2 += track.getAuthor() + " - " + track.getName() + "\n";
+				s += track.getAuthor() + " - " + track.getName() + "\n";
 			}
 			
-			s2 += "\nTracce suggerite utilizzando l'80% del database: \n";
+			s += "\nTracce suggerite utilizzando l'" + percent + "% del database:\n";
 			for(Track track:suggestedTracks){
-				s2 += track.getAuthor() + " - " + track.getName() + "\n";
+				s += track.getAuthor() + " - " + track.getName() + "\n";
 			}
 			
-			s2 += "\nTracce che ha sentito l'utente nel rimanente 20% del database: \n";
-			for(Track track:tracks20Test){
-				s2 += track.getAuthor() + " - " + track.getName() + "\n";
+			s += "\nTracce che ha sentito l'utente nel rimanente " + (100-percent) + "% del database:\n";
+			for(Track track:tracksTest){
+				s += track.getAuthor() + " - " + track.getName() + "\n";
 			}
 			
-			System.out.println(s2);
-			out2.write(s2);
+			this.swing.printAddOnTextPane(s);
+			System.out.println(s);
+			out2.write(s);
 		}else{
+			this.swing.printAddOnTextPane(user.getName() + " NON SIMILE A NESSUN ALTRO UTENTE");
 			System.out.println(user.getName() + " - NON SIMILE A NESSUN ALTRO UTENTE");
 			out2.write(user.getName() + " - NON SIMILE A NESSUN ALTRO UTENTE");
 		}
@@ -480,5 +512,19 @@ public class JaccardSimilarity {
     	}
     	
     	return trackUserName;
+    }
+    
+    public List<String> getFirstUsers(EntityManager em){
+    	javax.persistence.Query qUsers = em.createQuery("SELECT u FROM User u, Tweet tw WHERE tw.user = u GROUP BY u HAVING COUNT(tw) > 1");
+		List<User> users = new ArrayList<User>(qUsers.getResultList());
+		List<String> nameUsers = new ArrayList<String>();
+		
+		Collections.shuffle(users);
+		
+		do{
+			nameUsers.add(users.get(nameUsers.size()).getName());
+		}while(nameUsers.size()<30);
+		
+		return nameUsers;
     }
 }

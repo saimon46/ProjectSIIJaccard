@@ -17,7 +17,7 @@ public class Jaccard {
 		
 		String userId = "13229";
 		
-		jaccard.runOneUser70percent(em, userId);
+		jaccard.runOneUserPercent(em, userId, 70);
 		
 		
 		//jaccard.runOneUser(em, userId);

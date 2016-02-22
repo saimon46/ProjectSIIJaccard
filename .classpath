@@ -2,23 +2,10 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
-	<classpathentry kind="lib" path="/home/simone/Scrivania/twitter4j/lib/twitter4j-async-4.0.4.jar"/>
-	<classpathentry kind="lib" path="/home/simone/Scrivania/twitter4j/lib/twitter4j-core-4.0.4.jar"/>
-	<classpathentry kind="lib" path="/home/simone/Scrivania/twitter4j/lib/twitter4j-examples-4.0.4.jar"/>
-	<classpathentry kind="lib" path="/home/simone/Scrivania/twitter4j/lib/twitter4j-media-support-4.0.4.jar"/>
-	<classpathentry kind="lib" path="/home/simone/Scrivania/twitter4j/lib/twitter4j-stream-4.0.4.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.module.container"/>
 	<classpathentry kind="lib" path="/home/simone/workspace/ProjectSII/lib/postgresql-9.4-1206-jdbc4.jar"/>
 	<classpathentry kind="lib" path="/home/simone/workspace/ProjectSII/lib/openjpa-2.4.0.jar"/>
 	<classpathentry kind="lib" path="/home/simone/workspace/ProjectSII/lib/openjpa-all-2.4.0.jar"/>
-	<classpathentry kind="lib" path="/home/simone/workspace/ProjectSII/lib/spotify-web-api-java-1.5.0.jar"/>
-	<classpathentry kind="lib" path="/home/simone/workspace/ProjectSII/lib/json-lib-2.4-jdk15.jar"/>
-	<classpathentry kind="lib" path="/home/simone/workspace/ProjectSII/lib/httpclient-4.5.1.jar"/>
-	<classpathentry kind="lib" path="/home/simone/workspace/ProjectSII/lib/commons-httpclient-3.1.jar"/>
-	<classpathentry kind="lib" path="/home/simone/workspace/ProjectSII/lib/protobuf-java-2.6.1.jar"/>
-	<classpathentry kind="lib" path="/home/simone/workspace/ProjectSII/lib/guava-18.0.jar"/>
-	<classpathentry kind="lib" path="/home/simone/workspace/ProjectSII/lib/commons-codec-1.10.jar"/>
-	<classpathentry kind="lib" path="/home/simone/workspace/ProjectSII/lib/ezmorph-1.0.6.jar"/>
 	<classpathentry kind="lib" path="/home/simone/workspace/ProjectSII/lib/slf4j-api-1.7.13.jar"/>
 	<classpathentry kind="lib" path="/home/simone/workspace/ProjectSII/lib/slf4j-simple-1.7.13.jar"/>
 	<classpathentry kind="output" path="bin"/>
