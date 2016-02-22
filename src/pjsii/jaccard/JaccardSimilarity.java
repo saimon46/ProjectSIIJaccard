@@ -27,14 +27,17 @@ public class JaccardSimilarity {
 	}
 	
     public void runAllForSize(EntityManager em, int size) throws IOException {
+    	//***leggo tutti gli utenti dal database e li ordino in base a quanti tweet hanno pubblicato***
     	javax.persistence.Query qUsers = em.createQuery("SELECT tw.user AS uid FROM Tweet tw GROUP BY tw.user ORDER BY COUNT(tw.id) DESC");
 		List<User> users = new ArrayList<User>(qUsers.getResultList());
 		
+		//***calcolo della matrice di similarità su 'size' utenti***
 		ArrayList<ArrayList<Double>> similarity = getSimilarityMatrix(em, users, size, cAuthor, cTrack);
 		
 		FileWriter fOutstream1 = new FileWriter("Log.txt");
         BufferedWriter out1 = new BufferedWriter(fOutstream1);
 		
+        //***stampa della matrice di similarità trovata***
 		for(int i = 0; i<size; i++){
 			String s = "";
 			System.out.print("Utente n° "+(i+1)+": ");
@@ -55,6 +58,8 @@ public class JaccardSimilarity {
 		System.out.println("-----------Analisi similarità completata-----------");
 		out1.write("-----------Analisi similarità completata-----------\n");
 		
+		
+		//***calcolo della similarità maggiore e dell'utente relativo***
 		List<Double> max = new ArrayList<Double>();
 		List<User> similarUser = new ArrayList<User>();
 		
@@ -105,6 +110,7 @@ public class JaccardSimilarity {
     }
     
     public void runOneUser(EntityManager em, String name) throws IOException {
+    	//***leggo l'utente con il nome passato per parametro***
     	javax.persistence.Query qUser = em.createQuery("SELECT u FROM User u WHERE u.name = :name");
     	qUser.setParameter("name", name);
 		List<User> listUser = new ArrayList<User>(qUser.getResultList());
@@ -113,6 +119,7 @@ public class JaccardSimilarity {
     	javax.persistence.Query qUsers = em.createQuery("SELECT u FROM User u, Tweet tw WHERE tw.user = u GROUP BY u HAVING COUNT(tw) > 1");
 		List<User> users = new ArrayList<User>(qUsers.getResultList());
 		
+		//***calcolo la similarità tra l'utente e gli altri***
 		ArrayList<Double> similarity = getSimilarityVector(em, user, users, cAuthor, cTrack);
 		
 		FileWriter fOutstream1 = new FileWriter("Log.txt");
@@ -128,6 +135,7 @@ public class JaccardSimilarity {
 		User similarUserFirst = null;
 		User similarUserSecond = null;
 		
+		//***calcolo delle similarità maggiori e dei due utenti più simili relativi***
 		for(int i = 0; i<users.size(); i++)
 			if(max1 < similarity.get(i) && similarity.get(i) != 1){
 				max2 = max1;
@@ -157,6 +165,7 @@ public class JaccardSimilarity {
 			System.out.println(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
 			out2.write(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
 			
+			//***trovo le canzoni in base all'utente e ai due più simili suggerendo le loro canzoni che non ha ancora sentito***
 			List<Track> suggestedTracks = getListSuggestedTracks(user, similarUserFirst, similarUserSecond);
 			
 			String s = "\nTracce utente preso in considerazione '" + user.getName() + "': \n";
@@ -195,6 +204,7 @@ public class JaccardSimilarity {
     }
     
     public void runOneUserPercent(EntityManager em, String name, int percent) throws IOException {
+    	//***leggo l'utente con il nome passato per parametro***
     	javax.persistence.Query qUser = em.createQuery("SELECT u FROM User u WHERE u.name = :name");
     	qUser.setParameter("name", name);
 		List<User> listUser = new ArrayList<User>(qUser.getResultList());
@@ -203,8 +213,7 @@ public class JaccardSimilarity {
     	javax.persistence.Query qUsers = em.createQuery("SELECT u FROM User u GROUP BY u HAVING COUNT(u.tweets) > 1");
 		List<User> users = new ArrayList<User>(qUsers.getResultList());
 		
-		//System.out.println("Dimensione users "+users.size());
-		
+		//***leggo tutti i tweet e li mischio***		
 		List<Tweet>	tweets = new ArrayList<Tweet>();
 		for(User current:users){
 			tweets.addAll(current.getTweets());
@@ -212,13 +221,13 @@ public class JaccardSimilarity {
 		
 		Collections.shuffle(tweets);
 		
-		//System.out.println("Dimensione tweet "+tweets.size());
-		
 		List<Tweet>	tweetsTraining = new ArrayList<Tweet>();
 		List<Tweet>	tweetsTest = new ArrayList<Tweet>();
 		
 		int sizeTraining = tweets.size()/100*percent;
 		int cont = 0;
+		
+		//***divido il database in base alla percentuale***
 		
 		for(Tweet tweet:tweets){
 			if(cont < sizeTraining)
@@ -228,6 +237,7 @@ public class JaccardSimilarity {
 			cont++;
 		}
 		
+		//***calcolo dell'utente simile tenendo conto solo di una parte del database (quella di training)***
 		ArrayList<Double> similarity = getSimilarityVectorFromTweets(em, user, users, tweetsTraining, cAuthor, cTrack);
 		
 		FileWriter fOutstream1 = new FileWriter("Log.txt");
@@ -270,6 +280,8 @@ public class JaccardSimilarity {
 			System.out.println(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
 			out2.write(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
 			
+			//***trovo le canzoni in base all'utente e ai due più simili suggerendo le loro canzoni che non ha ancora sentito nel solo db di training***
+			
 			List<Track> suggestedTracks = getListSuggestedTracksFromTweets(user, similarUserFirst, similarUserSecond, tweetsTraining);
 			List<Track> tracksTest = user.getTracksInTweets(tweetsTest);
 			
@@ -296,6 +308,7 @@ public class JaccardSimilarity {
 				s += track.getAuthor() + " - " + track.getName() + "\n";
 			}
 			
+			//***confronto quelle suggerite con quelle che ha sentito nel db di test***
 			s += "\nTracce che ha sentito l'utente nel rimanente " + (100-percent) + "% del database:\n";
 			for(Track track:tracksTest){
 				s += track.getAuthor() + " - " + track.getName() + "\n";
@@ -352,6 +365,7 @@ public class JaccardSimilarity {
 			ArrayList<Double> rowSimilarity = new ArrayList<Double>();
 			
 			for(int j = 0; j<size; j++){
+				//***per ogni coppia di utenti calcolo la loro similarità usando la formula della similarità di jaccard***
 				javax.persistence.Query qUser2Author = em.createQuery("SELECT DISTINCT tr.author FROM Track tr, Tweet tw WHERE tw.user.id = '" + users.get(j).getId() + "' AND tw.track = tr");
 				List<String> trackUser2Author = (List<String>) qUser2Author.getResultList();
 				
