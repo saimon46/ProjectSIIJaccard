@@ -161,9 +161,11 @@ public class JaccardSimilarity {
 			System.out.println(user.getName() + " - " + similarUserFirst.getName() + " - " + max1);
 			out2.write(user.getName() + " - " + similarUserFirst.getName() + " - " + max1);
 			
-			this.swing.printAddOnTextPane("Utente '" + user.getName() + "' e secondo utente simile '" + similarUserSecond.getName() + "' con coefficiente di similarità: " + max2);
-			System.out.println(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
-			out2.write(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
+			if(similarUserSecond!= null){
+				this.swing.printAddOnTextPane("Utente '" + user.getName() + "' e secondo utente simile '" + similarUserSecond.getName() + "' con coefficiente di similarità: " + max2);
+				System.out.println(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
+				out2.write(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
+			}
 			
 			//***trovo le canzoni in base all'utente e ai due più simili suggerendo le loro canzoni che non ha ancora sentito***
 			List<Track> suggestedTracks = getListSuggestedTracks(user, similarUserFirst, similarUserSecond);
@@ -180,10 +182,12 @@ public class JaccardSimilarity {
 				s += track.getAuthor() + " - " + track.getName() + "\n";
 			}
 			
-			s += "\nTracce secondo utente simile '" + similarUserSecond.getName() + "' - similarità: " + max2 + " :\n";
-			List<Track> tracksSecond = similarUserSecond.getTracks();
-			for(Track track:tracksSecond){
-				s += track.getAuthor() + " - " + track.getName() + "\n";
+			if(similarUserSecond!= null){
+				s += "\nTracce secondo utente simile '" + similarUserSecond.getName() + "' - similarità: " + max2 + " :\n";
+				List<Track> tracksSecond = similarUserSecond.getTracks();
+				for(Track track:tracksSecond){
+					s += track.getAuthor() + " - " + track.getName() + "\n";
+				}
 			}
 			
 			s += "\nTracce suggerite: \n";
@@ -276,10 +280,11 @@ public class JaccardSimilarity {
 			System.out.println(user.getName() + " - " + similarUserFirst.getName() + " - " + max1);
 			out2.write(user.getName() + " - " + similarUserFirst.getName() + " - " + max1);
 			
-			this.swing.printAddOnTextPane("Utente '" + user.getName() + "' e secondo utente simile '" + similarUserSecond.getName() + " con coefficiente di similarità: " + max2);
-			System.out.println(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
-			out2.write(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
-			
+			if(similarUserSecond!= null){
+				this.swing.printAddOnTextPane("Utente '" + user.getName() + "' e secondo utente simile '" + similarUserSecond.getName() + " con coefficiente di similarità: " + max2);
+				System.out.println(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
+				out2.write(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
+			}
 			//***trovo le canzoni in base all'utente e ai due più simili suggerendo le loro canzoni che non ha ancora sentito nel solo db di training***
 			
 			List<Track> suggestedTracks = getListSuggestedTracksFromTweets(user, similarUserFirst, similarUserSecond, tweetsTraining);
@@ -297,10 +302,12 @@ public class JaccardSimilarity {
 				s += track.getAuthor() + " - " + track.getName() + "\n";
 			}
 			
-			s += "\nTracce secondo utente simile '" + similarUserSecond.getName() + "' - similarità: " + max2 + " :\n";
-			List<Track> tracksSecond = similarUserSecond.getTracksInTweets(tweetsTraining);
-			for(Track track:tracksSecond){
-				s += track.getAuthor() + " - " + track.getName() + "\n";
+			if(similarUserSecond!= null){
+				s += "\nTracce secondo utente simile '" + similarUserSecond.getName() + "' - similarità: " + max2 + " :\n";
+				List<Track> tracksSecond = similarUserSecond.getTracksInTweets(tweetsTraining);
+				for(Track track:tracksSecond){
+					s += track.getAuthor() + " - " + track.getName() + "\n";
+				}
 			}
 			
 			s += "\nTracce suggerite utilizzando l'" + percent + "% del database:\n";
@@ -327,7 +334,354 @@ public class JaccardSimilarity {
 		out2.close();
     }
     
-    private static List<String> union(List<String> list1, List<String> list2) {
+    public Valutation runOneUserPercentVal(EntityManager em, String name, int percent) throws IOException {
+    	Valutation valutation = null;
+		
+    	//***leggo l'utente con il nome passato per parametro***
+    	javax.persistence.Query qUser = em.createQuery("SELECT u FROM User u WHERE u.name = :name");
+    	qUser.setParameter("name", name);
+		List<User> listUser = new ArrayList<User>(qUser.getResultList());
+		User user = listUser.get(0);
+		
+    	javax.persistence.Query qUsers = em.createQuery("SELECT u FROM User u GROUP BY u HAVING COUNT(u.tweets) > 1");
+		List<User> users = new ArrayList<User>(qUsers.getResultList());
+		
+		//***leggo tutti i tweet e li mischio***		
+		List<Tweet>	tweets = new ArrayList<Tweet>();
+		for(User current:users){
+			tweets.addAll(current.getTweets());
+		}
+		
+		Collections.shuffle(tweets);
+		
+		List<Tweet>	tweetsTraining = new ArrayList<Tweet>();
+		List<Tweet>	tweetsTest = new ArrayList<Tweet>();
+		
+		int sizeTraining = tweets.size()/100*percent;
+		int cont = 0;
+		
+		//***divido il database in base alla percentuale***
+		for(Tweet tweet:tweets){
+			if(cont < sizeTraining)
+				tweetsTraining.add(tweet);
+			else
+				tweetsTest.add(tweet);
+			cont++;
+		}
+		
+		//***calcolo dell'utente simile tenendo conto solo di una parte del database (quella di training)***
+		ArrayList<Double> similarity = getSimilarityVectorFromTweets(em, user, users, tweetsTraining, cAuthor, cTrack);
+		
+		FileWriter fOutstream1 = new FileWriter("Log.txt");
+        BufferedWriter out1 = new BufferedWriter(fOutstream1);
+        
+        /*
+        this.swing.printAddOnTextPane("-- Analisi similarità completata --");
+		System.out.println("-----------Analisi similarità completata-----------");
+		out1.write("-----------Analisi similarità completata-----------\n");
+		*/
+		
+		double max1 = 0.0;
+		double max2 = 0.0;
+		User similarUserFirst = null;
+		User similarUserSecond = null;
+		
+		for(int i = 0; i<users.size(); i++)
+			if(max1 < similarity.get(i) && similarity.get(i) != 1){
+				max2 = max1;
+				max1 = similarity.get(i);
+				similarUserSecond = similarUserFirst;
+				similarUserFirst = users.get(i);
+			}else
+				if(max2 < similarity.get(i) && similarity.get(i) != 1){
+					max2 = similarity.get(i);
+					similarUserSecond = users.get(i);
+			}
+		
+		/*
+		this.swing.printAddOnTextPane("-- Calcolo utente simile completato --");		
+		System.out.println("-----------Calcolo utente simile completato-----------");
+		out1.write("-----------Calcolo utente simile completato-----------\n");
+		*/
+		
+		FileWriter fOutstream2 = new FileWriter("Similarity.txt");
+        BufferedWriter out2 = new BufferedWriter(fOutstream2);
+		
+		if(similarUserFirst!= null){
+			
+			/*
+			this.swing.printAddOnTextPane("Utente '" + user.getName() + "' e primo utente simile '" + similarUserFirst.getName() + "' con coefficiente di similarità: " + max1);
+			System.out.println(user.getName() + " - " + similarUserFirst.getName() + " - " + max1);
+			out2.write(user.getName() + " - " + similarUserFirst.getName() + " - " + max1);
+			
+			if(similarUserSecond!= null){
+				this.swing.printAddOnTextPane("Utente '" + user.getName() + "' e secondo utente simile '" + similarUserSecond.getName() + " con coefficiente di similarità: " + max2);
+				System.out.println(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
+				out2.write(user.getName() + " - " + similarUserSecond.getName() + " - " + max2);
+			}
+			*/
+			
+			//***trovo le canzoni in base all'utente e ai due più simili suggerendo le loro canzoni che non ha ancora sentito nel solo db di training***
+			
+			List<Track> suggestedTracks = getListSuggestedTracksFromTweets(user, similarUserFirst, similarUserSecond, tweetsTraining);
+			List<Track> tracksTest = user.getTracksInTweets(tweetsTest);
+			
+			String s = "\nTracce utente '" + user.getName() + "' nel solo " + percent + "% del database:\n";
+			List<Track> tracksUser = user.getTracksInTweets(tweetsTraining);
+			for(Track track:tracksUser){
+				s += track.getAuthor() + " - " + track.getName() + "\n";
+			}
+			
+			s += "\nTracce primo utente simile '" + similarUserFirst.getName() + "' - similarità: " + max1 + " :\n";
+			List<Track> tracksFirst = similarUserFirst.getTracksInTweets(tweetsTraining);
+			for(Track track:tracksFirst){
+				s += track.getAuthor() + " - " + track.getName() + "\n";
+			}
+			
+			if(similarUserSecond!= null){
+				s += "\nTracce secondo utente simile '" + similarUserSecond.getName() + "' - similarità: " + max2 + " :\n";
+				List<Track> tracksSecond = similarUserSecond.getTracksInTweets(tweetsTraining);
+				for(Track track:tracksSecond){
+					s += track.getAuthor() + " - " + track.getName() + "\n";
+				}
+			}
+			
+			if(!suggestedTracks.isEmpty()){
+				s += "\nTracce suggerite utilizzando l'" + percent + "% del database:\n";
+				for(Track track:suggestedTracks){
+					s += track.getAuthor() + " - " + track.getName() + "\n";
+				}
+				
+				//***confronto quelle suggerite con quelle che ha sentito nel db di test***
+				if(!tracksTest.isEmpty()){
+					s += "\nTracce che ha sentito l'utente nel rimanente " + (100-percent) + "% del database:\n";
+					for(Track track:tracksTest){
+						s += track.getAuthor() + " - " + track.getName() + "\n";
+					}
+					
+					//***calcolo della valutazione per il singolo utente***
+					double precisionAuthor = this.getPrecisionAuthor(suggestedTracks, tracksTest);
+					double recallAuthor = this.getRecallAuthor(suggestedTracks, tracksTest);
+					
+					double precision = this.getPrecision(suggestedTracks, tracksTest);
+					double recall = this.getRecall(suggestedTracks, tracksTest);
+					
+					valutation = new Valutation(precisionAuthor, recallAuthor, precision, recall);
+				}else{
+					valutation = new Valutation();
+				}
+			}else{
+				s += "\nNessuna traccia suggerita!\n";
+				
+				valutation = new Valutation(0,0,0,0);
+			}
+			
+			String s2 = "\nValutazione della raccomandazione di " + user.getName() + ":\n";
+			
+			s2 += "Precision in base all'autore: " + valutation.getPrecisionAuthor() + "\n";
+			s2 += "Recall in base all'autore: " + valutation.getRecallAuthor() + "\n";
+			
+			s2 += "Precision in base alla traccia: " + valutation.getPrecision() + "\n";
+			s2 += "Recall in base alla traccia: " + valutation.getRecall() + "\n";
+			
+			s2 += "FMeasure in base all'autore: " + valutation.getfMeasureAuthor() + "\n";
+			s2 += "FMeasure in base alla traccia: " + valutation.getfMeasure();
+			
+			/*
+			this.swing.printAddOnTextPane(s2);
+			System.out.println(s2);
+			out2.write(s2);
+			*/
+			
+			this.swing.printAddOnTextPane("Analizzato utente " + user.getName());
+			System.out.print(".");
+			out2.write("Analizzato utente " + user.getName());
+		}else{
+			this.swing.printAddOnTextPane("Analizzato utente " + user.getName() + ", NON SIMILE A NESSUN ALTRO UTENTE");
+			System.out.print(".");
+			out2.write("Analizzato utente " + user.getName() + ", NON SIMILE A NESSUN ALTRO UTENTE");
+			
+			valutation = new Valutation(0,0,0,0);
+		}
+		
+		out1.close();
+		out2.close();
+		
+		return valutation;
+    }
+    
+    public void valutationTest(EntityManager em, int n) throws IOException{
+    	//***metodo di valutazione del sistema su N utenti pescati random***
+    	List<User> users = this.getNUsers(em, 500);
+    	
+    	
+    	//***test 50-50***
+    	this.swing.printAddOnTextPane("Test 50-50\n");
+		System.out.println("Test 50-50");
+    	
+    	double precisionAuthorAVG = 0;
+    	double recallAuthorAVG = 0;
+    	double precisionAVG = 0;
+    	double recallAVG = 0;
+    	int contUsers = 0;
+    	int contEff = 0;
+    	
+    	Collections.shuffle(users);
+    	
+    	//***calcolo della valutazione del sistema mediando i valori di precision e recall su n utenti presi random***
+    	do{
+    		Valutation val = this.runOneUserPercentVal(em, users.get(contUsers).getName(), 50);
+    		contUsers++;
+    		if(!val.isNull()){
+    			precisionAuthorAVG += val.getPrecisionAuthor();
+        		recallAuthorAVG += val.getRecallAuthor();
+        		precisionAVG += val.getPrecision();
+        		recallAVG += val.getRecall();
+        		contEff++;
+    		}    		
+    	}while(contEff<n);
+    	
+    	Valutation valutation = new Valutation(precisionAuthorAVG/n, recallAuthorAVG/n, precisionAVG/n, recallAVG/n);
+    	
+    	String s = "\nValutazione finale su " + n + " utenti e database 50% training e 50% test:\n";
+		
+		s += "Precision in base all'autore: " + valutation.getPrecisionAuthor() + "\n";
+		s += "Recall in base all'autore: " + valutation.getRecallAuthor() + "\n";
+		
+		s += "Precision in base alla traccia: " + valutation.getPrecision() + "\n";
+		s += "Recall in base alla traccia: " + valutation.getRecall() + "\n";
+		
+		s += "FMeasure in base all'autore: " + valutation.getfMeasureAuthor() + "\n";
+		s += "FMeasure in base alla traccia: " + valutation.getfMeasure() + "\n";
+    	
+    	this.swing.printAddOnTextPane(s);
+		System.out.println(s);
+		
+		//***test 60-40***
+		this.swing.printAddOnTextPane("\nTest 60-40\n");
+		System.out.println("\nTest 60-40");
+		
+    	precisionAuthorAVG = 0;
+    	recallAuthorAVG = 0;
+    	precisionAVG = 0;
+    	recallAVG = 0;
+    	contUsers = 0;
+    	contEff = 0;
+    	
+    	Collections.shuffle(users);
+		
+    	do{
+    		Valutation val = this.runOneUserPercentVal(em, users.get(contUsers).getName(), 50);
+    		contUsers++;
+    		if(!val.isNull()){
+    			precisionAuthorAVG += val.getPrecisionAuthor();
+        		recallAuthorAVG += val.getRecallAuthor();
+        		precisionAVG += val.getPrecision();
+        		recallAVG += val.getRecall();
+        		contEff++;
+    		}    		
+    	}while(contEff<n);
+    	
+    	valutation = new Valutation(precisionAuthorAVG/n, recallAuthorAVG/n, precisionAVG/n, recallAVG/n);
+    	
+    	s = "\nValutazione finale su " + n + " utenti e database 60% training e 40% test:\n";
+		
+		s += "Precision in base all'autore: " + valutation.getPrecisionAuthor() + "\n";
+		s += "Recall in base all'autore: " + valutation.getRecallAuthor() + "\n";
+		
+		s += "Precision in base alla traccia: " + valutation.getPrecision() + "\n";
+		s += "Recall in base alla traccia: " + valutation.getRecall() + "\n";
+		
+		s += "FMeasure in base all'autore: " + valutation.getfMeasureAuthor() + "\n";
+		s += "FMeasure in base alla traccia: " + valutation.getfMeasure() + "\n";
+    	
+    	this.swing.printAddOnTextPane(s);
+		System.out.println(s);
+		
+		//***test 70-30***
+		this.swing.printAddOnTextPane("\nTest 70-30\n");
+		System.out.println("\nTest 70-30");
+		
+		precisionAuthorAVG = 0;
+    	recallAuthorAVG = 0;
+    	precisionAVG = 0;
+    	recallAVG = 0;
+    	contUsers = 0;
+    	contEff = 0;
+    	
+    	Collections.shuffle(users);
+		
+    	do{
+    		Valutation val = this.runOneUserPercentVal(em, users.get(contUsers).getName(), 50);
+    		contUsers++;
+    		if(!val.isNull()){
+    			precisionAuthorAVG += val.getPrecisionAuthor();
+        		recallAuthorAVG += val.getRecallAuthor();
+        		precisionAVG += val.getPrecision();
+        		recallAVG += val.getRecall();
+        		contEff++;
+    		}    		
+    	}while(contEff<n);
+    	
+    	valutation = new Valutation(precisionAuthorAVG/n, recallAuthorAVG/n, precisionAVG/n, recallAVG/n);
+    	
+    	s = "\nValutazione finale su " + n + " utenti e database 70% training e 30% test:\n";
+		
+		s += "Precision in base all'autore: " + valutation.getPrecisionAuthor() + "\n";
+		s += "Recall in base all'autore: " + valutation.getRecallAuthor() + "\n";
+		
+		s += "Precision in base alla traccia: " + valutation.getPrecision() + "\n";
+		s += "Recall in base alla traccia: " + valutation.getRecall() + "\n";
+		
+		s += "FMeasure in base all'autore: " + valutation.getfMeasureAuthor() + "\n";
+		s += "FMeasure in base alla traccia: " + valutation.getfMeasure() + "\n";
+    	
+    	this.swing.printAddOnTextPane(s);
+		System.out.println(s);
+
+		//***test 80-20***
+		this.swing.printAddOnTextPane("\nTest 80-20\n");
+		System.out.println("\nTest 80-20");
+		
+		precisionAuthorAVG = 0;
+    	recallAuthorAVG = 0;
+    	precisionAVG = 0;
+    	recallAVG = 0;
+    	contUsers = 0;
+    	contEff = 0;
+    	
+    	Collections.shuffle(users);
+		
+    	do{
+    		Valutation val = this.runOneUserPercentVal(em, users.get(contUsers).getName(), 50);
+    		contUsers++;
+    		if(!val.isNull()){
+    			precisionAuthorAVG += val.getPrecisionAuthor();
+        		recallAuthorAVG += val.getRecallAuthor();
+        		precisionAVG += val.getPrecision();
+        		recallAVG += val.getRecall();
+        		contEff++;
+    		}    		
+    	}while(contEff<n);
+    	
+    	valutation = new Valutation(precisionAuthorAVG/n, recallAuthorAVG/n, precisionAVG/n, recallAVG/n);
+    	
+    	s = "\nValutazione finale su " + n + " utenti e database 80% training e 20% test:\n";
+		
+		s += "Precision in base all'autore: " + valutation.getPrecisionAuthor() + "\n";
+		s += "Recall in base all'autore: " + valutation.getRecallAuthor() + "\n";
+		
+		s += "Precision in base alla traccia: " + valutation.getPrecision() + "\n";
+		s += "Recall in base alla traccia: " + valutation.getRecall() + "\n";
+		
+		s += "FMeasure in base all'autore: " + valutation.getfMeasureAuthor() + "\n";
+		s += "FMeasure in base alla traccia: " + valutation.getfMeasure() + "\n";
+    	
+    	this.swing.printAddOnTextPane(s);
+		System.out.println(s);
+    }
+
+	private static List<String> union(List<String> list1, List<String> list2) {
         Set<String> set = new HashSet<String>();
 
         set.addAll(list1);
@@ -461,18 +815,23 @@ public class JaccardSimilarity {
 			similarityTrack.add(jaccardAuthor);
 			similarity.add(cAuthor * jaccardAuthor + cTrack * jaccardTrack);
 			
-			if(i%100 == 0)
-				System.out.println("Analizzati " + i + " utenti su " + users.size());
+			//if(i%100 == 0)
+				//System.out.println("Analizzati " + i + " utenti su " + users.size());
 		}
 		
-		System.out.println("Analizzati " + users.size() + " utenti su " + users.size());
+		//System.out.println("Analizzati " + users.size() + " utenti su " + users.size());
 		
     	return similarity;
     }
    
     private List<Track> getListSuggestedTracksFromTweets(User user, User similarUser1, User similarUser2,List<Tweet> tweets) {
     	List<Track> tracksSimilarUser1 = similarUser1.getTracksInTweets(tweets);
-    	List<Track> tracksSimilarUser2 = similarUser2.getTracksInTweets(tweets);
+    	List<Track> tracksSimilarUser2 = null;
+    	if(similarUser2!= null){
+    		tracksSimilarUser2 = similarUser2.getTracksInTweets(tweets);
+    	}else{
+    		tracksSimilarUser2 = new ArrayList<Track>();
+    	}
     	List<Track> tracksUser = user.getTracksInTweets(tweets);
     	
     	for(Track track: tracksUser){
@@ -490,7 +849,12 @@ public class JaccardSimilarity {
     
     private List<Track> getListSuggestedTracks(User user, User similarUser1, User similarUser2) {
     	List<Track> tracksSimilarUser1 = similarUser1.getTracks();
-    	List<Track> tracksSimilarUser2 = similarUser2.getTracks();
+    	List<Track> tracksSimilarUser2 = null;
+    	if(similarUser2!= null){
+    		tracksSimilarUser2 = similarUser2.getTracks();
+    	}else{
+    		tracksSimilarUser2 = new ArrayList<Track>();
+    	}
     	List<Track> tracksUser = user.getTracks();
     	
     	for(Track track: tracksUser){
@@ -528,17 +892,85 @@ public class JaccardSimilarity {
     	return trackUserName;
     }
     
-    public List<String> getFirstUsers(EntityManager em){
-    	javax.persistence.Query qUsers = em.createQuery("SELECT u FROM User u, Tweet tw WHERE tw.user = u GROUP BY u HAVING COUNT(tw) > 1");
+    public List<User> getNUsers(EntityManager em, int n){
+    	javax.persistence.Query qUsers = em.createQuery("SELECT u FROM User u, Tweet tw WHERE tw.user = u GROUP BY u HAVING COUNT(tw) > 2");
 		List<User> users = new ArrayList<User>(qUsers.getResultList());
-		List<String> nameUsers = new ArrayList<String>();
-		
 		Collections.shuffle(users);
 		
-		do{
-			nameUsers.add(users.get(nameUsers.size()).getName());
-		}while(nameUsers.size()<30);
+		return users.subList(0, n);
+    }
+    
+    public List<String> getNUsersName(EntityManager em, int n){
+		List<User> users = this.getNUsers(em, n);
+		List<String> nameUsers = new ArrayList<String>();
+	
+		for(User user: users){
+			nameUsers.add(user.getName());
+		}
 		
 		return nameUsers;
+    }
+    
+    private double getPrecisionAuthor(List<Track> suggestedTracks, List<Track> tracksTest){
+    	double precision = this.truePositivesAuthor(suggestedTracks, tracksTest) / (double)suggestedTracks.size();
+    	
+    	return precision;
+    }
+    
+    private double getPrecision(List<Track> suggestedTracks, List<Track> tracksTest){
+    	double precision = this.truePositivesTrack(suggestedTracks, tracksTest) / (double)suggestedTracks.size();
+    	
+    	return precision;
+    }
+    
+    private double getRecallAuthor(List<Track> suggestedTracks, List<Track> tracksTest) {
+    	double truePositivesAuthor = this.truePositivesAuthor(suggestedTracks, tracksTest);
+    	double recall = truePositivesAuthor / (double)tracksTest.size();
+    	
+		return recall;
+	}
+    
+    private double getRecall(List<Track> suggestedTracks, List<Track> tracksTest) {
+    	double truePositivesTrack = this.truePositivesTrack(suggestedTracks, tracksTest);
+    	double recall = truePositivesTrack / (double)tracksTest.size();
+		
+    	return recall;
+	}
+    
+    private int truePositivesAuthor(List<Track> tracks1, List<Track> tracks2){
+    	int rtn = 0;
+    	
+    	List<String> authors1 = this.getAuthorFromTracks(tracks1);
+    	List<String> authors2 = this.getAuthorFromTracks(tracks2);
+    	
+    	for(String authorI: authors1){
+    		boolean ctr = false;
+    		for(String authorJ: authors2){
+    			if(authorI.equals(authorJ)){
+    				ctr = true;
+    			}
+    		}
+    		if(ctr == true)
+    			rtn++;
+    	}
+    	
+    	return rtn;
+    }
+    
+    private int truePositivesTrack(List<Track> tracks1, List<Track> tracks2){
+    	int rtn = 0;
+    	
+    	for(Track trackI: tracks1){
+    		boolean ctr = false;
+    		for(Track trackJ: tracks2){
+    			if(trackI.getId() == trackJ.getId()){
+    				ctr = true;
+    			}
+    		}
+    		if(ctr == true)
+    			rtn++;
+    	}
+    	
+    	return rtn;
     }
 }

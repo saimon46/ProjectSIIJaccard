@@ -37,6 +37,7 @@ public class SwingIndex {
 	private EntityManagerFactory emf;
 	private EntityManager em;
 	private JaccardSimilarity jaccard;
+	private JTextField textFieldNUsersVal;
 
 	/**
 	 * Launch the application.
@@ -163,7 +164,7 @@ public class SwingIndex {
 		JButton btnNewButton = new JButton("Refresh");
 		btnNewButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				List<String> nameUsers = jaccard.getFirstUsers(em);
+				List<String> nameUsers = jaccard.getNUsersName(em, 30);
 				
 				comboBoxUser1.removeAllItems();
 				
@@ -175,12 +176,10 @@ public class SwingIndex {
 			}
 		});
 		
-		
-		
 		JButton button_3 = new JButton("Refresh");
 		button_3.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				List<String> nameUsers = jaccard.getFirstUsers(em);
+				List<String> nameUsers = jaccard.getNUsersName(em, 30);
 				
 				comboBoxUser2.removeAllItems();
 				
@@ -193,6 +192,28 @@ public class SwingIndex {
 		});
 		
 		JLabel label_1 = new JLabel("Utente");
+		
+		JLabel lblTestDiValutazione = new JLabel("Test di valutazione del sistema di raccomandazione");
+		lblTestDiValutazione.setHorizontalAlignment(SwingConstants.LEFT);
+		
+		textFieldNUsersVal = new JTextField();
+		textFieldNUsersVal.setText("50");
+		textFieldNUsersVal.setColumns(10);
+		
+		JLabel label_2 = new JLabel("N° utenti:");
+		
+		JButton button_4 = new JButton("Avvia");
+		button_4.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				textArea.setText("");
+				tabbedPane.setSelectedIndex(1);
+				try {
+					jaccard.valutationTest(em, Integer.parseInt(textFieldNUsersVal.getText()));
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+		});
 		
 		GroupLayout gl_panel = new GroupLayout(panel);
 		gl_panel.setHorizontalGroup(
@@ -210,15 +231,30 @@ public class SwingIndex {
 					.addComponent(button_3, GroupLayout.PREFERRED_SIZE, 89, GroupLayout.PREFERRED_SIZE)
 					.addContainerGap(628, Short.MAX_VALUE))
 				.addGroup(gl_panel.createSequentialGroup()
-					.addGroup(gl_panel.createParallelGroup(Alignment.TRAILING)
-						.addGroup(Alignment.LEADING, gl_panel.createSequentialGroup()
+					.addContainerGap()
+					.addComponent(lblAnalisiSimilaritTra_1)
+					.addContainerGap(67, Short.MAX_VALUE))
+				.addGroup(gl_panel.createSequentialGroup()
+					.addContainerGap()
+					.addComponent(lblTestDiValutazione, GroupLayout.PREFERRED_SIZE, 886, GroupLayout.PREFERRED_SIZE)
+					.addContainerGap(67, Short.MAX_VALUE))
+				.addGroup(gl_panel.createSequentialGroup()
+					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_panel.createSequentialGroup()
+							.addContainerGap()
+							.addComponent(label_2, GroupLayout.PREFERRED_SIZE, 68, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.UNRELATED)
+							.addComponent(textFieldNUsersVal, GroupLayout.PREFERRED_SIZE, 114, GroupLayout.PREFERRED_SIZE)
+							.addPreferredGap(ComponentPlacement.RELATED, 407, Short.MAX_VALUE)
+							.addComponent(button_4, GroupLayout.PREFERRED_SIZE, 322, GroupLayout.PREFERRED_SIZE))
+						.addGroup(gl_panel.createSequentialGroup()
 							.addContainerGap()
 							.addComponent(label_6)
 							.addPreferredGap(ComponentPlacement.RELATED)
 							.addComponent(textFieldPercent, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
 							.addPreferredGap(ComponentPlacement.RELATED, 305, Short.MAX_VALUE)
 							.addComponent(button_2, GroupLayout.PREFERRED_SIZE, 322, GroupLayout.PREFERRED_SIZE))
-						.addGroup(Alignment.LEADING, gl_panel.createSequentialGroup()
+						.addGroup(gl_panel.createSequentialGroup()
 							.addContainerGap()
 							.addComponent(label_7)
 							.addPreferredGap(ComponentPlacement.UNRELATED)
@@ -227,10 +263,10 @@ public class SwingIndex {
 							.addComponent(btnNewButton)
 							.addPreferredGap(ComponentPlacement.RELATED, 282, Short.MAX_VALUE)
 							.addComponent(button_1, GroupLayout.PREFERRED_SIZE, 322, GroupLayout.PREFERRED_SIZE))
-						.addGroup(Alignment.LEADING, gl_panel.createSequentialGroup()
+						.addGroup(gl_panel.createSequentialGroup()
 							.addGap(314)
 							.addComponent(label_5))
-						.addGroup(Alignment.LEADING, gl_panel.createSequentialGroup()
+						.addGroup(gl_panel.createSequentialGroup()
 							.addContainerGap()
 							.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
 								.addGroup(gl_panel.createSequentialGroup()
@@ -241,10 +277,6 @@ public class SwingIndex {
 									.addComponent(button, GroupLayout.DEFAULT_SIZE, 322, Short.MAX_VALUE))
 								.addComponent(lblAnalisiSimilaritTra))))
 					.addContainerGap(24, Short.MAX_VALUE))
-				.addGroup(gl_panel.createSequentialGroup()
-					.addContainerGap()
-					.addComponent(lblAnalisiSimilaritTra_1)
-					.addContainerGap(67, Short.MAX_VALUE))
 		);
 		gl_panel.setVerticalGroup(
 			gl_panel.createParallelGroup(Alignment.LEADING)
@@ -273,16 +305,22 @@ public class SwingIndex {
 						.addComponent(comboBoxUser2, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
 						.addComponent(label_1))
 					.addGap(18)
-					.addGroup(gl_panel.createParallelGroup(Alignment.LEADING)
-						.addGroup(Alignment.TRAILING, gl_panel.createSequentialGroup()
-							.addGap(55)
-							.addComponent(label_5))
+					.addGroup(gl_panel.createParallelGroup(Alignment.TRAILING)
+						.addComponent(label_5)
 						.addGroup(gl_panel.createSequentialGroup()
 							.addGroup(gl_panel.createParallelGroup(Alignment.BASELINE)
 								.addComponent(label_6)
 								.addComponent(textFieldPercent, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
 								.addComponent(button_2))
-							.addContainerGap())))
+							.addGap(30)))
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(lblTestDiValutazione)
+					.addGap(22)
+					.addGroup(gl_panel.createParallelGroup(Alignment.BASELINE)
+						.addComponent(label_2)
+						.addComponent(textFieldNUsersVal, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+						.addComponent(button_4))
+					.addContainerGap(122, Short.MAX_VALUE))
 		);
 		panel.setLayout(gl_panel);
 		
